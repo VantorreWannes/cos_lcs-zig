@@ -1,5 +1,5 @@
 const std = @import("std");
-const CosLcsIterator = @This();
+pub const CosLcsIterator = @This();
 
 pub const PairIndexes = struct {
     source_index: usize,
