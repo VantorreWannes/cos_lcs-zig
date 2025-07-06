@@ -1,7 +1,7 @@
 const std = @import("std");
-pub const CosLcsIterator = @This();
+pub export const CosLcsIterator = @This();
 
-pub const PairIndexes = struct {
+pub export const PairIndexes = struct {
     source_index: usize,
     target_index: usize,
 };
@@ -13,14 +13,14 @@ target: []const u8,
 last_pair_indexes: PairIndexes = .{ .source_index = 0, .target_index = 0 },
 occurrence_buffer: [256]usize = [_]usize{NO_INDEX} ** 256,
 
-pub fn init(source: []const u8, target: []const u8) CosLcsIterator {
+pub export fn init(source: []const u8, target: []const u8) CosLcsIterator {
     return CosLcsIterator{
         .source = source,
         .target = target,
     };
 }
 
-pub fn reset(self: *CosLcsIterator) void {
+pub export fn reset(self: *CosLcsIterator) void {
     self.last_pair_indexes = .{ .source_index = 0, .target_index = 0 };
     self.occurence_buffer = []usize{NO_INDEX} ** 256;
 }
@@ -57,7 +57,7 @@ fn nextPairOffsets(source: []const u8, target: []const u8, occurrence_buffer: *[
     return result;
 }
 
-pub fn nextPairIndexes(self: *CosLcsIterator) ?PairIndexes {
+pub export fn nextPairIndexes(self: *CosLcsIterator) ?PairIndexes {
     const s_slice = self.source[self.last_pair_indexes.source_index..];
     const t_slice = self.target[self.last_pair_indexes.target_index..];
     const pair_indexes = nextPairOffsets(s_slice, t_slice, &self.occurrence_buffer);
@@ -73,7 +73,7 @@ pub fn nextPairIndexes(self: *CosLcsIterator) ?PairIndexes {
     return null;
 }
 
-pub fn nextValue(self: *CosLcsIterator) ?u8 {
+pub export fn nextValue(self: *CosLcsIterator) ?u8 {
     if (self.nextPairIndexes()) |indexes| {
         return self.source[indexes.source_index];
     }
