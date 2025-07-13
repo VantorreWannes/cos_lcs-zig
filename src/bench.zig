@@ -1,6 +1,6 @@
 const std = @import("std");
 const zbench = @import("zbench");
-const cos_lcs = @import("cos.zig");
+const CosLcsIterator = @import("cos.zig");
 
 fn getRandomArray(random: *std.Random, comptime length: comptime_int, comptime alphabet_size: comptime_int) [length]u8 {
     var array: [length]u8 = undefined;
@@ -23,7 +23,7 @@ fn CosLcsNextValueBenchmark(comptime length: comptime_int, comptime alphabet_siz
         }
 
         pub fn run(self: @This(), _: std.mem.Allocator) void {
-            var iterator = cos_lcs.CosLcsIterator.init(&self.source,& self.target);
+            var iterator = CosLcsIterator.init(&self.source,& self.target);
             while (iterator.nextValue()) |item| {
                 std.mem.doNotOptimizeAway(item);
             }
