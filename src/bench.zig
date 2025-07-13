@@ -24,7 +24,7 @@ fn CosLcsNextValueBenchmark(comptime length: comptime_int, comptime alphabet_siz
 
         pub fn run(self: @This(), _: std.mem.Allocator) void {
             var iterator = CosLcsIterator.init(&self.source,& self.target);
-            while (iterator.nextValue()) |item| {
+            while (iterator.next()) |item| {
                 std.mem.doNotOptimizeAway(item);
             }
         }
