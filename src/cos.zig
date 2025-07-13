@@ -1,5 +1,5 @@
 const std = @import("std");
-const CosLcsIterator = @This();
+pub const Self = @This();
 
 pub const PairIndexes = struct {
     source_index: usize,
@@ -13,16 +13,15 @@ target: []const u8,
 last_pair_indexes: PairIndexes = .{ .source_index = 0, .target_index = 0 },
 occurrence_buffer: [256]usize = [_]usize{NO_INDEX} ** 256,
 
-pub fn init(source: []const u8, target: []const u8) CosLcsIterator {
-    return CosLcsIterator{
+pub fn init(source: []const u8, target: []const u8) Self {
+    return Self{
         .source = source,
         .target = target,
     };
 }
 
-pub fn reset(self: *CosLcsIterator) void {
+pub fn reset(self: *Self) void {
     self.last_pair_indexes = .{ .source_index = 0, .target_index = 0 };
-    self.occurence_buffer = []usize{NO_INDEX} ** 256;
 }
 
 fn nextPairOffsets(source: []const u8, target: []const u8, occurrence_buffer: *[256]usize) ?PairIndexes {
@@ -57,46 +56,123 @@ fn nextPairOffsets(source: []const u8, target: []const u8, occurrence_buffer: *[
     return result;
 }
 
-pub fn nextPairIndexes(self: *CosLcsIterator) ?PairIndexes {
+pub fn peekPairIndexes(self: *Self) ?PairIndexes {
     const s_slice = self.source[self.last_pair_indexes.source_index..];
     const t_slice = self.target[self.last_pair_indexes.target_index..];
     const pair_indexes = nextPairOffsets(s_slice, t_slice, &self.occurrence_buffer);
 
     if (pair_indexes) |p| {
-        self.last_pair_indexes.source_index += p.source_index + 1;
-        self.last_pair_indexes.target_index += p.target_index + 1;
         return .{
-            .source_index = self.last_pair_indexes.source_index - 1,
-            .target_index = self.last_pair_indexes.target_index - 1,
+            .source_index = self.last_pair_indexes.source_index + p.source_index,
+            .target_index = self.last_pair_indexes.target_index + p.target_index,
         };
     }
     return null;
 }
 
-pub fn nextValue(self: *CosLcsIterator) ?u8 {
+pub fn peekValue(self: *Self) ?u8 {
+    if (self.peekPairIndexes()) |indexes| {
+        return self.source[indexes.source_index];
+    }
+    return null;
+}
+
+pub fn nextPairIndexes(self: *Self) ?PairIndexes {
+    if (self.peekPairIndexes()) |indexes| {
+        self.last_pair_indexes.source_index = indexes.source_index + 1;
+        self.last_pair_indexes.target_index = indexes.target_index + 1;
+        return indexes;
+    }
+    return null;
+}
+
+pub fn nextValue(self: *Self) ?u8 {
     if (self.nextPairIndexes()) |indexes| {
         return self.source[indexes.source_index];
     }
     return null;
 }
 
-test nextPairOffsets {
-    try std.testing.expectEqual(nextPairOffsets(&[_]u8{}, &[_]u8{}), null);
-    try std.testing.expectEqual(nextPairOffsets(&[_]u8{0}, &[_]u8{1}), null);
-    try std.testing.expectEqual(nextPairOffsets(&[_]u8{1}, &[_]u8{ 0, 1 }) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 1 });
-    try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 2, 1, 0 }, &[_]u8{ 0, 1, 2 }) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
+pub fn isEmpty(self: *Self) bool {
+    return self.peekValue() == null;
 }
 
-test nextPairIndexes {
-    var iterator = CosLcsIterator.init(&[_]u8{ 2, 1, 0, 3 }, &[_]u8{ 0, 1, 2, 3 });
+test "nextPairOffsets" {
+    var buffer: [256]usize = undefined;
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{}, &[_]u8{}, &buffer), null);
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{0}, &[_]u8{1}, &buffer), null);
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{1}, &[_]u8{ 0, 1 }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 1 });
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 2, 1, 0 }, &[_]u8{ 0, 1, 2 }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 'a', 'b', 'c' }, &[_]u8{ 'c', 'b', 'a' }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
+}
+
+test "nextPairIndexes" {
+    var iterator = Self.init(&[_]u8{ 2, 1, 0, 3 }, &[_]u8{ 0, 1, 2, 3 });
     try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
     try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 3, .target_index = 3 });
     try std.testing.expectEqual(iterator.nextPairIndexes(), null);
 }
 
-test nextValue {
-    var iterator = CosLcsIterator.init(&[_]u8{ 2, 1, 0, 3 }, &[_]u8{ 0, 1, 2, 3 });
+test "nextValue" {
+    var iterator = Self.init(&[_]u8{ 2, 1, 0, 3 }, &[_]u8{ 0, 1, 2, 3 });
     try std.testing.expectEqual(iterator.nextValue() orelse unreachable, 2);
     try std.testing.expectEqual(iterator.nextValue() orelse unreachable, 3);
     try std.testing.expectEqual(iterator.nextValue(), null);
+}
+
+test "empty source" {
+    var it = Self.init(&[_]u8{}, &[_]u8{ 1, 2, 3 });
+    try std.testing.expect(it.isEmpty());
+    try std.testing.expectEqual(it.nextValue(), null);
+}
+
+test "empty target" {
+    var it = Self.init(&[_]u8{ 1, 2, 3 }, &[_]u8{});
+    try std.testing.expect(it.isEmpty());
+    try std.testing.expectEqual(it.nextValue(), null);
+}
+
+test "no common elements" {
+    var it = Self.init(&[_]u8{ 1, 2, 3 }, &[_]u8{ 4, 5, 6 });
+    try std.testing.expect(it.isEmpty());
+    try std.testing.expectEqual(it.nextValue(), null);
+}
+
+test "repeated elements" {
+    var it = Self.init("abacaba", "babacaba");
+    try std.testing.expectEqualSlices(u8, &[_]u8{'a', 'b', 'a', 'c', 'a', 'b', 'a'}, &[_]u8{it.nextValue().?, it.nextValue().?, it.nextValue().?, it.nextValue().?, it.nextValue().?, it.nextValue().?, it.nextValue().?});
+    try std.testing.expectEqual(it.nextValue(), null);
+}
+
+test "peek and next" {
+    var it = Self.init("hello", "world");
+    try std.testing.expectEqual(it.peekValue() orelse unreachable, 'l');
+    try std.testing.expectEqual(it.peekValue() orelse unreachable, 'l');
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'l');
+    try std.testing.expectEqual(it.peekValue() orelse unreachable, 'o');
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'o');
+    try std.testing.expect(it.isEmpty());
+}
+
+test "reset" {
+    var it = Self.init("abc", "cba");
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'a');
+    it.reset();
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'a');
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'b');
+    try std.testing.expectEqual(it.nextValue() orelse unreachable, 'c');
+    try std.testing.expectEqual(it.nextValue(), null);
+}
+
+test "larger example" {
+    const source = "the quick brown fox jumps over the lazy dog";
+    const target = "a lazy dog is a friend of a quick brown fox";
+    var it = Self.init(source, target);
+    var result_buffer: [100]u8 = undefined;
+    var result_slice = std.ArrayList(u8).init(result_buffer[0..]);
+    defer result_slice.deinit();
+    while (it.nextValue()) |v| {
+        try result_slice.append(v);
+    }
+    try std.testing.expectEqualSlices(u8, "thequickbrownfoxlazydog", result_slice.items);
 }
