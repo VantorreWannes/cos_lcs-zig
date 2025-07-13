@@ -159,7 +159,7 @@ pub fn build(b: *std.Build) void {
     const zbench_mod = zbench_pkg.module("zbench");
 
     const bench_exe = b.addExecutable(.{
-        .name = "benchmarks",
+        .name = "bench_cos_lcs_zig",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/bench.zig"),
             .target = target,

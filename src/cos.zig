@@ -1,5 +1,8 @@
 const std = @import("std");
-pub const Self = @This();
+
+const CosLcsIterator = @This();
+
+const Self = @This();
 
 pub const PairIndexes = struct {
     source_index: usize,
@@ -94,7 +97,7 @@ pub fn nextValue(self: *Self) ?u8 {
 }
 
 pub fn isEmpty(self: *Self) bool {
-    return self.peekValue() == null;
+    return self.peekPairIndexes() == null;
 }
 
 test "nextPairOffsets" {
@@ -102,12 +105,14 @@ test "nextPairOffsets" {
     try std.testing.expectEqual(nextPairOffsets(&[_]u8{}, &[_]u8{}, &buffer), null);
     try std.testing.expectEqual(nextPairOffsets(&[_]u8{0}, &[_]u8{1}, &buffer), null);
     try std.testing.expectEqual(nextPairOffsets(&[_]u8{1}, &[_]u8{ 0, 1 }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 1 });
-    try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 2, 1, 0 }, &[_]u8{ 0, 1, 2 }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
+    try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 2, 1, 0 }, &[_]u8{ 0, 1, 2 }, &buffer) orelse unreachable, PairIndexes{ .source_index = 2, .target_index = 0 });
     try std.testing.expectEqual(nextPairOffsets(&[_]u8{ 'a', 'b', 'c' }, &[_]u8{ 'c', 'b', 'a' }, &buffer) orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
 }
 
 test "nextPairIndexes" {
     var iterator = Self.init(&[_]u8{ 2, 1, 0, 3 }, &[_]u8{ 0, 1, 2, 3 });
+    try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 2, .target_index = 0 });
+    try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 1, .target_index = 1 });
     try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 0, .target_index = 2 });
     try std.testing.expectEqual(iterator.nextPairIndexes() orelse unreachable, PairIndexes{ .source_index = 3, .target_index = 3 });
     try std.testing.expectEqual(iterator.nextPairIndexes(), null);
@@ -168,11 +173,12 @@ test "larger example" {
     const source = "the quick brown fox jumps over the lazy dog";
     const target = "a lazy dog is a friend of a quick brown fox";
     var it = Self.init(source, target);
-    var result_buffer: [100]u8 = undefined;
-    var result_slice = std.ArrayList(u8).init(result_buffer[0..]);
-    defer result_slice.deinit();
+
+    var result_list = std.ArrayList(u8).init(std.testing.allocator);
+    defer result_list.deinit();
+
     while (it.nextValue()) |v| {
-        try result_slice.append(v);
+        try result_list.append(v);
     }
-    try std.testing.expectEqualSlices(u8, "thequickbrownfoxlazydog", result_slice.items);
+    try std.testing.expectEqualSlices(u8, "a quick brown fox a lazy dog", result_list.items);
 }
