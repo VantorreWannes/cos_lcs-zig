@@ -1,0 +1,19 @@
+{
+    "zig.testArgs": [
+        "build",
+        "-Dllvm",
+        "test",
+        "--",
+        "--test-filter",
+        "${filter}"
+    ],
+    "lldb.launch.initCommands": [
+        "command script import ~/lldb_pretty_printers.py",
+        "type category enable zig.lang",
+        "type category enable zig.std",
+        "type category enable zig.stage2"
+    ],
+    "lldb.launch.sourceLanguages": [
+        "zig"
+    ],
+}
