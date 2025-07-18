@@ -105,4 +105,5 @@ pub fn build(b: *std.Build) void {
 
     // Install
     b.installArtifact(main_bin);
+    b.installArtifact(root_test_bin);
 }
