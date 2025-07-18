@@ -23,7 +23,7 @@ fn CosLcsNextValueBenchmark(comptime length: comptime_int, comptime alphabet_siz
         }
 
         pub fn run(self: @This(), _: std.mem.Allocator) void {
-            var iterator = CosLcsIterator.init(&self.source,& self.target);
+            var iterator = CosLcsIterator.init(&self.source, &self.target);
             while (iterator.next()) |item| {
                 std.mem.doNotOptimizeAway(item);
             }
@@ -32,29 +32,29 @@ fn CosLcsNextValueBenchmark(comptime length: comptime_int, comptime alphabet_siz
 }
 
 pub fn main() !void {
-    var seed: u64 = undefined;
-    try std.posix.getrandom(std.mem.asBytes(&seed));
-    var prng = std.Random.DefaultPrng.init(seed);
+    var prng = std.Random.DefaultPrng.init(std.testing.random_seed);
     var random = prng.random();
 
     const stdout = std.io.getStdOut().writer();
-    var bench = zbench.Benchmark.init(std.heap.page_allocator, .{});
+
+    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+    defer _ = gpa.deinit();
+    const allocator = gpa.allocator();
+
+    var bench = zbench.Benchmark.init(allocator, .{});
     defer bench.deinit();
 
     const lengths = [_]comptime_int{ 10, 100, 250, 500, 1000, 1500, 2000 };
     const alphabet_sizes = [_]comptime_int{ 1, 2, 4, 16, 32, 64, 128, 255 };
 
-    const page_allocator = std.heap.page_allocator;
-
     inline for (lengths) |length| {
         inline for (alphabet_sizes) |alphabet_size| {
-            const name = try std.fmt.allocPrint(
-                page_allocator,
+            const name = std.fmt.comptimePrint(
                 "CosLCs_L{d}_A{d}",
-                .{length, alphabet_size},
+                .{ length, alphabet_size },
             );
-            const Benchmark = CosLcsNextValueBenchmark(length, alphabet_size);
-            try bench.addParam(name, &Benchmark.init(&random), .{});
+            const benchmark = CosLcsNextValueBenchmark(length, alphabet_size).init(&random);
+            try bench.addParam(name, &benchmark, .{});
         }
     }
 

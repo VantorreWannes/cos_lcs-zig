@@ -3,12 +3,17 @@ const testing = std.testing;
 const Allocator = std.mem.Allocator;
 const CosLcsIterator = @This();
 
+/// A pair representing a common item and its location in the source and target slices.
 pub const Pair = struct {
+    /// The common item found.
     item: u8,
+    /// The index of the item in the original source slice.
     source_index: usize,
+    /// The index of the item in the original target slice.
     target_index: usize,
 };
 
+/// Represents the iterator's current position within the source and target slices.
 pub const Cursor = struct {
     source_index: usize,
     target_index: usize,
@@ -21,6 +26,7 @@ occurrences: [256]usize,
 
 const NO_INDEX = std.math.maxInt(usize);
 
+/// Initializes a new `CosLcsIterator` with the given source and target slices.
 pub fn init(source: []const u8, target: []const u8) CosLcsIterator {
     return CosLcsIterator{
         .source = source,
@@ -30,15 +36,26 @@ pub fn init(source: []const u8, target: []const u8) CosLcsIterator {
     };
 }
 
+/// Resets the iterator's cursor to the beginning of the source and target slices,
+/// allowing the iteration to be restarted.
 pub fn reset(self: *CosLcsIterator) void {
     self.cursor = .{ .source_index = 0, .target_index = 0 };
 }
 
+/// Advances the iterator and returns the next common item as a `u8`.
+/// Returns `null` if no more common items are found.
 pub fn next(self: *CosLcsIterator) ?u8 {
     const pair = self.nextPair() orelse return null;
     return pair.item;
 }
 
+/// Advances the iterator and returns the next common `Pair`.
+///
+/// This method contains the core logic of the iterator. It finds the next pair
+/// of matching items by searching for the element that minimizes the sum of its
+/// index in the source slice and its first occurrence in the target slice.
+///
+/// Returns `null` if no more common pairs are found.
 pub fn nextPair(self: *CosLcsIterator) ?Pair {
     const s_slice = self.source[self.cursor.source_index..];
     const t_slice = self.target[self.cursor.target_index..];
