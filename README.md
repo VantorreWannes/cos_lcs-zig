@@ -1,6 +1,6 @@
 # zig-cos
 
-This repository contains a Zig implementation of a greedy algorithm for finding a common subsequence.
+This repository contains a Zig implementation of a greedy algorithm for finding the longest common subsequence.
 
 ## `CosLcsIterator`
 
