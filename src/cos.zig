@@ -108,7 +108,3 @@ test reset {
     try testing.expectEqual(@as(?u8, 'a'), it.next());
     try testing.expectEqual(null, it.next());
 }
-
-test {
-    _ = CosLcsIterator;
-}
